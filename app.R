@@ -92,8 +92,8 @@ ui <- fluidPage(
         animation = "jelly"
       ),
       selectInput("mimeClass", "Select MIME Class:",
-                  choices = c("ALL", unique(data$mime_class)),
-                  selected = "ALL"),  # Pre-select "ALL" for MIME class
+                  choices = c("All", unique(data$mime_class)),
+                  selected = "All"),  # Pre-select "All" for MIME class
 
       pickerInput(
         inputId = "filename",
@@ -107,7 +107,7 @@ ui <- fluidPage(
       ),
 
       actionButton("generate", "Generate Response", class = "btn-success"),
-      actionButton("toggle-text", "Toggle Table", class = "btn-info"),
+      actionButton("toggle-text", "Toggle Info", class = "btn-warning"),
       actionButton("toggle", "Toggle Table", class = "btn-info")
     ),
 
@@ -131,7 +131,7 @@ ui <- fluidPage(
         style = "fill",
         color = "success"
       ),
-      textOutput("selectedInfo"),
+      textOutput("filteredText"),
 
       #verbatimTextOutput("output_text"),
       uiOutput("filteredData")
@@ -142,12 +142,13 @@ ui <- fluidPage(
 # Define server logic
 server <- function(input, output, session) {
 
+  text_visible <- reactiveVal(FALSE)
   table_visible <- reactiveVal(FALSE)
   # Reactive expression to update course code options
   updateCourseCodeOptions <- reactive({
     req(input$mimeClass)
 
-    if (input$mimeClass == "ALL") {
+    if (input$mimeClass == "All") {
       unique_ids <- unique(data$name)
     } else {
       unique_ids <- unique(data %>%
@@ -165,9 +166,10 @@ server <- function(input, output, session) {
     req(input$courseCode)
 
     filtered_data <- data %>%
-      filter(name == input$courseCode)
+      filter(name == input$courseCode,
+             filename != "Powerpoint+presentatie.pptx")
 
-    if (input$mimeClass != "ALL") {
+    if (input$mimeClass != "All") {
       filtered_data <- filtered_data %>%
         filter(mime_class == input$mimeClass)
     }
@@ -194,7 +196,7 @@ server <- function(input, output, session) {
       filter(name == input$courseCode,
              filename == input$filename)
 
-    if (input$mimeClass != "ALL") {
+    if (input$mimeClass != "All") {
       filtered_data <- filtered_data %>%
         filter(mime_class == input$mimeClass)
     }
@@ -203,6 +205,7 @@ server <- function(input, output, session) {
   })
 
   filteredText <- reactive({
+    req(input$courseCode, input$filename)
     paste("Type:", input$type,
           "| Course Code:", input$courseCode,
           "| MIME Class:", input$mimeClass,
@@ -211,7 +214,7 @@ server <- function(input, output, session) {
   })
 
   # Display selected information
-  output$selectedInfo <- renderText({
+  output$filteredText <- renderText({
     filteredText()
 
   })
@@ -252,20 +255,17 @@ server <- function(input, output, session) {
       text_visible(!text_visible())  # Toggle the boolean value
     })
 
-    # Render the filtered data table conditionally
+    # Render the filtered data table conditionAlly
     output$filteredText <- renderUI({
       if (text_visible()) {
-        paste("Type:", input$type,
-              "| Course Code:", input$courseCode,
-              "| MIME Class:", input$mimeClass,
-              "| Filename:", input$filename)
+        textOutput("filteredText")
 
         #tableOutput("filteredDataTable")  # Show the tableOutput when visible
       }
     })
 
     # Render the actual table data
-    output$filteredDataTable <- renderText({
+    output$filteredText <- renderText({
       filteredText()
     })
 
@@ -274,7 +274,7 @@ server <- function(input, output, session) {
       table_visible(!table_visible())  # Toggle the boolean value
     })
 
-    # Render the filtered data table conditionally
+    # Render the filtered data table conditionAlly
     output$filteredData <- renderUI({
       if (table_visible()) {
         tableOutput("filteredDataTable")  # Show the tableOutput when visible

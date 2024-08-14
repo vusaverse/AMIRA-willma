@@ -114,6 +114,11 @@
       ],
       "Hash": "fd6824ad91ede64151e93af67df6376b"
     },
+    "dplyr": {
+      "Package": "dplyr",
+      "Version": "1.1.4",
+      "Source": "Repository"
+    },
     "ellipsis": {
       "Package": "ellipsis",
       "Version": "0.3.2",
@@ -196,6 +201,11 @@
         "utils"
       ],
       "Hash": "16abeb167dbf511f8cc0552efaf05bab"
+    },
+    "httr": {
+      "Package": "httr",
+      "Version": "1.4.7",
+      "Source": "Repository"
     },
     "jquerylib": {
       "Package": "jquerylib",

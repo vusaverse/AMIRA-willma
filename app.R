@@ -1,51 +1,213 @@
+library(shiny)
+library(dplyr)
+
+
+# Load the RDS file at the start
+dfPPT <- readRDS("G:/DSZ/SA2016/Datasets/Output/main/20. Test/WILLMA hackathon/dfOutput_per_vak.rds")
+
+
+data <- dfPPT %>% filter(!is.na(extracted_text))
+
+
+
+headers <- add_headers(`X-API-KEY` = api_key, `Content-Type` = "application/json")  # Define R requests headers
+willma_base_url <- "https://willma.soil.surf.nl/"
+
+response <- GET(paste0(willma_base_url, "api/models"), headers)
+models <- fromJSON(content(response, "text"))
+
+model <- models %>%
+  filter(id == 82) %>%
+  slice(1)  # Get the first match
+
 #
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    https://shiny.posit.co/
-#
+
+
 
 library(shiny)
+library(dplyr)
+library(httr)
+library(jsonlite)
 
-# Define UI for application that draws a histogram
-ui <- fluidPage(
+# Load the RDS file at the start
+# data <- readRDS("G:/DSZ/SA2016/Datasets/Output/main/20. Test/CAN_Powerpoint_text.rds")
 
-    # Application title
-    titlePanel("Old Faithful Geyser Data"),
+# Define the function to handle PowerPoint text
+generate_request <- function(ppt_content, model, input_type, api_key, willma_base_url) {
+  print(ppt_content)
+  print(model)
+  print(input_type)
+  # Validate input_type
+  valid_input_types <- c("summary", "flashcard", "multiplechoice")
 
-    # Sidebar with a slider input for number of bins 
-    sidebarLayout(
-        sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
-        ),
+  if (!(input_type %in% valid_input_types)) {
+    stop("Invalid input_type. Choose from 'summary', 'flashcard', or 'multiplechoice'.")
+  }
 
-        # Show a plot of the generated distribution
-        mainPanel(
-           plotOutput("distPlot")
-        )
+  selected_model <- model
+
+  if (nrow(selected_model) > 0) {
+    model_name <- selected_model$name
+    cat(sprintf("Sending request to %s\n", model_name))
+
+    # Prepare the data for the POST request based on input_type
+    input_text <- switch(input_type,
+                         summary = sprintf("Antwoord mij enkel in het nederlands. Geef een samenvatting van deze slides van powerpoint %s", ppt_content),
+                         flashcard = sprintf("Maak een diepgaand flashcard setje vragen over de slides die ik jou nu stuur, respondeer in het nederlands. Content is van de slides hier: %s", ppt_content),
+                         multiplechoice = sprintf("Maak een diepgaand flashcard setje vragen over de slides die ik jou nu stuur, respondeer in het nederlands maak multiple choice met 4 keuzes per vraag. Content is van de slides hier: %s", ppt_content))
+
+    request_data <- toJSON(list(
+      sequence_id = selected_model$id,
+      input = input_text
+    ), auto_unbox = TRUE)  # Convert to JSON format
+
+    # Send the POST request
+    response <- POST(
+      paste0(willma_base_url, "api/chat/completions"),
+      body = request_data,
+      encode = "json",
+      add_headers(`X-API-KEY` = api_key, `Content-Type` = "application/json")
     )
-)
 
-# Define server logic required to draw a histogram
-server <- function(input, output) {
+    # Return the response
+    llm_antwoord <- content(response, "text")
+    llm_json <- jsonlite::fromJSON(llm_antwoord)
+    return(paste0(llm_json[["message"]]))
 
-    output$distPlot <- renderPlot({
-        # generate bins based on input$bins from ui.R
-        x    <- faithful[, 2]
-        bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
-        # draw the histogram with the specified number of bins
-        hist(x, breaks = bins, col = 'darkgray', border = 'white',
-             xlab = 'Waiting time to next eruption (in mins)',
-             main = 'Histogram of waiting times')
-    })
+  } else {
+    cat("No model found with ID 82.\n")
+  }
 }
 
-# Run the application 
+# Define UI
+ui <- fluidPage(
+
+  titlePanel("AMIRA | Canvas automating with AI"),
+
+  sidebarLayout(
+    sidebarPanel(
+      radioButtons("type", "Choose Input Type:",
+                   choices = c("flashcard", "summary", "multiplechoice")),
+
+      selectInput("courseCode", "Select Course Code:",
+                  choices = NULL,
+                  selected = NULL),  # Initialize as NULL
+
+      selectInput("mimeClass", "Select MIME Class:",
+                  choices = c("ALL", unique(data$mime_class)),
+                  selected = "ALL"),  # Pre-select "ALL" for MIME class
+
+      selectInput("filename", "Select Filename:",
+                  choices = NULL,
+                  selected = NULL),  # Initialize as NULL
+
+      actionButton("generate", "Generate Response")
+    ),
+
+    mainPanel(
+      textOutput("selectedInfo"),
+      textOutput("output_text"),
+      tableOutput("filteredData")
+    )
+  )
+)
+
+# Define server logic
+server <- function(input, output, session) {
+
+  # Reactive expression to update course code options
+  updateCourseCodeOptions <- reactive({
+    req(input$mimeClass)
+
+    if (input$mimeClass == "ALL") {
+      unique_ids <- unique(data$course_code)
+    } else {
+      unique_ids <- unique(data %>%
+                             filter(mime_class == input$mimeClass) %>%
+                             pull(course_code))
+    }
+
+    updateSelectInput(session, "courseCode",
+                      choices = unique_ids,
+                      selected = unique_ids[1])
+  })
+
+  # Reactive expression to update filename options
+  updateFilenameOptions <- reactive({
+    req(input$courseCode)
+
+    filtered_data <- data %>%
+      filter(course_code == input$courseCode)
+
+    if (input$mimeClass != "ALL") {
+      filtered_data <- filtered_data %>%
+        filter(mime_class == input$mimeClass)
+    }
+
+    unique_filenames <- unique(filtered_data$filename)
+
+    updateSelectInput(session, "filename",
+                      choices = unique_filenames,
+                      selected = unique_filenames[1])
+  })
+
+  # Observe changes to update dropdown options
+  observe({
+    updateCourseCodeOptions()
+    updateFilenameOptions()
+  })
+
+  # Filter data based on selected values
+  filteredData <- reactive({
+    req(input$courseCode, input$filename)
+
+    filtered_data <- data %>%
+      filter(course_code == input$courseCode,
+             filename == input$filename)
+
+    if (input$mimeClass != "ALL") {
+      filtered_data <- filtered_data %>%
+        filter(mime_class == input$mimeClass)
+    }
+
+    return(filtered_data)
+  })
+
+  # Display selected information
+  output$selectedInfo <- renderText({
+    paste("Type:", input$type,
+          "| Course Code:", input$courseCode,
+          "| MIME Class:", input$mimeClass,
+          "| Filename:", input$filename)
+  })
+
+  # Display filtered data
+  output$filteredData <- renderTable({
+    filteredData()
+  })
+
+  # Generate response when button is clicked
+  observeEvent(input$generate, {
+    req(input$courseCode, input$filename)  # Ensure inputs are available
+
+    # Get the selected PowerPoint content
+    ppt_content <- paste(filteredData()$extracted_text, collapse = " ")  # Assuming 'content' is the column with PowerPoint text
+
+
+    # Call the generate_request function
+    # response_text <- generate_request(ppt_content, model, tolower(input$type), api_key, willma_base_url)
+    response_text <- paste(filteredData()$output, collapse = "\n ", sep = "**")
+    response_text <- gsub("\\*\\*([^*]+)\\*\\*", "\n\n**\\1**", response_text)
+
+
+    # Display the generated response
+    output$output_text <- renderText({
+      response_text
+    })
+  })
+}
+
+# Run the application
 shinyApp(ui = ui, server = server)
+
+

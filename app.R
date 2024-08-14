@@ -111,7 +111,7 @@ ui <- fluidPage(
 
     mainPanel(
       textOutput("selectedInfo"),
-      textAreaInput("output_text", "Bewerk:", "", rows = 10),
+      textAreaInput("output_text", "Bewerk:", "", rows = 10, width = "4000px", height = "500px"),
       #verbatimTextOutput("output_text"),
       uiOutput("filteredData")
     )

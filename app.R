@@ -20,9 +20,6 @@ model <- models %>%
   filter(id == 82) %>%
   slice(1)  # Get the first match
 
-#
-
-
 
 library(shiny)
 library(dplyr)
@@ -106,7 +103,7 @@ ui <- fluidPage(
 
     mainPanel(
       textOutput("selectedInfo"),
-      textOutput("output_text"),
+      verbatimTextOutput("output_text"),
       tableOutput("filteredData")
     )
   )

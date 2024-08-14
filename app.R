@@ -104,7 +104,8 @@ ui <- fluidPage(
 
     mainPanel(
       textOutput("selectedInfo"),
-      verbatimTextOutput("output_text"),
+      textAreaInput("output_text", "Bewerk:", "", rows = 10),
+      #verbatimTextOutput("output_text"),
       uiOutput("filteredData")
     )
   )
@@ -211,9 +212,11 @@ server <- function(input, output, session) {
 
 
     # Display the generated response in the output text box
-    output$output_text <- renderText({
-      response_text
-    })
+    # output$output_text <- renderText({
+    #   response_text
+    # })
+
+    updateTextInput(session, "output_text", value = response_text)
 
     # Toggle table visibility
     observeEvent(input$toggle, {

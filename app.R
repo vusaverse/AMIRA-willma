@@ -88,8 +88,15 @@ ui <- fluidPage(
                   choices = NULL,
                   selected = NULL),  # Initialize as NULL
 
-      radioButtons("type", "Choose Input Type:",
-                   choices = c("flashcard", "summary", "multiplechoice")),
+      prettyRadioButtons(
+        inputId = "type",
+        label = "Choose activity form:",
+        choices = c("flashcard", "summary", "multiplechoice"),
+        icon = icon("check"),
+        bigger = TRUE,
+        status = "info",
+        animation = "jelly"
+      ),
       selectInput("mimeClass", "Select MIME Class:",
                   choices = c("ALL", unique(data$mime_class)),
                   selected = "ALL"),  # Pre-select "ALL" for MIME class

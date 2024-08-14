@@ -201,19 +201,6 @@ server <- function(input, output, session) {
       response_text <- "Invalid input type"
     }
 
-    # response_text <- filteredData()$output
-
-    # Split the text on asterisks
-    split_text <- strsplit(response_text, "\\*")[[1]]
-
-    # print(split_text)
-
-    # Remove any leading/trailing whitespace from each part and filter out empty strings
-    formatted_text <- trimws(split_text[split_text != ""])
-
-    # Add asterisks and spaces back to each part and join with newlines
-    response_text <- paste0("*", formatted_text, collapse = "\n\n")
-
     # Display the generated response in the output text box
     output$output_text <- renderText({
       response_text

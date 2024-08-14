@@ -98,13 +98,14 @@ ui <- fluidPage(
                   choices = NULL,
                   selected = NULL),  # Initialize as NULL
 
-      actionButton("generate", "Generate Response")
+      actionButton("generate", "Generate Response"),
+      actionButton("toggle", "Toggle Table")
     ),
 
     mainPanel(
       textOutput("selectedInfo"),
       verbatimTextOutput("output_text"),
-      tableOutput("filteredData")
+      uiOutput("filteredData")
     )
   )
 )
@@ -112,6 +113,7 @@ ui <- fluidPage(
 # Define server logic
 server <- function(input, output, session) {
 
+  table_visible <- reactiveVal(FALSE)
   # Reactive expression to update course code options
   updateCourseCodeOptions <- reactive({
     req(input$mimeClass)
@@ -193,17 +195,41 @@ server <- function(input, output, session) {
 
     if (input$type == "summary") {
       response_text <- paste(filteredData()$summary, collapse = " ")
+      ##' *INFO*  crop the text to 1000 characters for display purposes
+      response_text <- substr(response_text, 1, 1000)
     } else if (input$type == "flashcard") {
       response_text <- paste(filteredData()$flashcard, collapse = "\n")
+      ##' *INFO*  crop the text to 1000 characters for display purposes
+      response_text <- substr(response_text, 1, 1000)
     } else if (input$type == "multiplechoice") {
       response_text <- paste(filteredData()$multiplechoice, collapse = "\n")
+      ##' *INFO*  crop the text to 1000 characters for display purposes
+      response_text <- substr(response_text, 1, 1000)
     } else {
       response_text <- "Invalid input type"
     }
 
+
     # Display the generated response in the output text box
     output$output_text <- renderText({
       response_text
+    })
+
+    # Toggle table visibility
+    observeEvent(input$toggle, {
+      table_visible(!table_visible())  # Toggle the boolean value
+    })
+
+    # Render the filtered data table conditionally
+    output$filteredData <- renderUI({
+      if (table_visible()) {
+        tableOutput("filteredDataTable")  # Show the tableOutput when visible
+      }
+    })
+
+    # Render the actual table data
+    output$filteredDataTable <- renderTable({
+      filteredData()
     })
 
 

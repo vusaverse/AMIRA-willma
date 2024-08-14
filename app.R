@@ -106,13 +106,33 @@ ui <- fluidPage(
         multiple = TRUE
       ),
 
-      actionButton("generate", "Generate Response"),
-      actionButton("toggle", "Toggle Table")
+      actionButton("generate", "Generate Response", class = "btn-success"),
+      actionButton("toggle-text", "Toggle Table", class = "btn-info"),
+      actionButton("toggle", "Toggle Table", class = "btn-info")
     ),
 
     mainPanel(
+      textAreaInput("output_text", "Bewerk:", "", rows = 10, width = "4000px", height = "375px"),
+      actionBttn(
+        inputId = "Id108",
+        label = "Download as markdown",
+        style = "fill",
+        color = "royal"
+      ),
+      actionBttn(
+        inputId = "Id108",
+        label = "Download as docx",
+        style = "fill",
+        color = "primary"
+      ),
+      actionBttn(
+        inputId = "Id108",
+        label = "Upload to Canvas",
+        style = "fill",
+        color = "success"
+      ),
       textOutput("selectedInfo"),
-      textAreaInput("output_text", "Bewerk:", "", rows = 10, width = "4000px", height = "500px"),
+
       #verbatimTextOutput("output_text"),
       uiOutput("filteredData")
     )
@@ -182,12 +202,18 @@ server <- function(input, output, session) {
     return(filtered_data)
   })
 
-  # Display selected information
-  output$selectedInfo <- renderText({
+  filteredText <- reactive({
     paste("Type:", input$type,
           "| Course Code:", input$courseCode,
           "| MIME Class:", input$mimeClass,
           "| Filename:", input$filename)
+
+  })
+
+  # Display selected information
+  output$selectedInfo <- renderText({
+    filteredText()
+
   })
 
   # Display filtered data
@@ -220,6 +246,28 @@ server <- function(input, output, session) {
     }
 
     updateTextInput(session, "output_text", value = response_text)
+
+    # Toggle table visibility
+    observeEvent(input$toggle_text, {
+      text_visible(!text_visible())  # Toggle the boolean value
+    })
+
+    # Render the filtered data table conditionally
+    output$filteredText <- renderUI({
+      if (text_visible()) {
+        paste("Type:", input$type,
+              "| Course Code:", input$courseCode,
+              "| MIME Class:", input$mimeClass,
+              "| Filename:", input$filename)
+
+        #tableOutput("filteredDataTable")  # Show the tableOutput when visible
+      }
+    })
+
+    # Render the actual table data
+    output$filteredDataTable <- renderText({
+      filteredText()
+    })
 
     # Toggle table visibility
     observeEvent(input$toggle, {

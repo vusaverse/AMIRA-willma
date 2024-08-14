@@ -119,11 +119,11 @@ server <- function(input, output, session) {
     req(input$mimeClass)
 
     if (input$mimeClass == "ALL") {
-      unique_ids <- unique(data$course_code)
+      unique_ids <- unique(data$name)
     } else {
       unique_ids <- unique(data %>%
                              filter(mime_class == input$mimeClass) %>%
-                             pull(course_code))
+                             pull(name))
     }
 
     updateSelectInput(session, "courseCode",
@@ -136,7 +136,7 @@ server <- function(input, output, session) {
     req(input$courseCode)
 
     filtered_data <- data %>%
-      filter(course_code == input$courseCode)
+      filter(name == input$courseCode)
 
     if (input$mimeClass != "ALL") {
       filtered_data <- filtered_data %>%
@@ -161,7 +161,7 @@ server <- function(input, output, session) {
     req(input$courseCode, input$filename)
 
     filtered_data <- data %>%
-      filter(course_code == input$courseCode,
+      filter(name == input$courseCode,
              filename == input$filename)
 
     if (input$mimeClass != "ALL") {

@@ -1,14 +1,14 @@
 library(shiny)
 library(dplyr)
-
+library(httr)
+library(jsonlite)
+library(shinyWidgets)
 
 # Load the RDS file at the start
 dfPPT <- readRDS("G:/DSZ/SA2016/Datasets/Output/main/20. Test/WILLMA hackathon/dfOutput_per_vak.rds")
 
 
 data <- dfPPT %>% filter(!is.na(extracted_text))
-
-
 
 headers <- add_headers(`X-API-KEY` = api_key, `Content-Type` = "application/json")  # Define R requests headers
 willma_base_url <- "https://willma.soil.surf.nl/"
@@ -19,12 +19,6 @@ models <- fromJSON(content(response, "text"))
 model <- models %>%
   filter(id == 82) %>%
   slice(1)  # Get the first match
-
-
-library(shiny)
-library(dplyr)
-library(httr)
-library(jsonlite)
 
 # Load the RDS file at the start
 # data <- readRDS("G:/DSZ/SA2016/Datasets/Output/main/20. Test/CAN_Powerpoint_text.rds")
@@ -101,9 +95,16 @@ ui <- fluidPage(
                   choices = c("ALL", unique(data$mime_class)),
                   selected = "ALL"),  # Pre-select "ALL" for MIME class
 
-      selectInput("filename", "Select Filename:",
-                  choices = NULL,
-                  selected = NULL),  # Initialize as NULL
+      pickerInput(
+        inputId = "filename",
+        label = "Select file:",
+        choices = NULL,
+        selected = NULL,
+        options = list(
+          style = "btn-primary",
+          `actions-box` = TRUE),
+        multiple = TRUE
+      ),
 
       actionButton("generate", "Generate Response"),
       actionButton("toggle", "Toggle Table")
@@ -153,9 +154,10 @@ server <- function(input, output, session) {
 
     unique_filenames <- unique(filtered_data$filename)
 
-    updateSelectInput(session, "filename",
+    updatePickerInput(session, "filename",
                       choices = unique_filenames,
                       selected = unique_filenames[1])
+
   })
 
   # Observe changes to update dropdown options
@@ -216,12 +218,6 @@ server <- function(input, output, session) {
     } else {
       response_text <- "Invalid input type"
     }
-
-
-    # Display the generated response in the output text box
-    # output$output_text <- renderText({
-    #   response_text
-    # })
 
     updateTextInput(session, "output_text", value = response_text)
 

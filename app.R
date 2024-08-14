@@ -86,13 +86,13 @@ ui <- fluidPage(
 
   sidebarLayout(
     sidebarPanel(
-      radioButtons("type", "Choose Input Type:",
-                   choices = c("flashcard", "summary", "multiplechoice")),
 
       selectInput("courseCode", "Select Course Code:",
                   choices = NULL,
                   selected = NULL),  # Initialize as NULL
 
+      radioButtons("type", "Choose Input Type:",
+                   choices = c("flashcard", "summary", "multiplechoice")),
       selectInput("mimeClass", "Select MIME Class:",
                   choices = c("ALL", unique(data$mime_class)),
                   selected = "ALL"),  # Pre-select "ALL" for MIME class
@@ -191,19 +191,38 @@ server <- function(input, output, session) {
     req(input$courseCode, input$filename)  # Ensure inputs are available
 
     # Get the selected PowerPoint content
-    ppt_content <- paste(filteredData()$extracted_text, collapse = " ")  # Assuming 'content' is the column with PowerPoint text
 
+    # Combine the output from filteredData into a single string
 
-    # Call the generate_request function
-    # response_text <- generate_request(ppt_content, model, tolower(input$type), api_key, willma_base_url)
-    response_text <- paste(filteredData()$output, collapse = "\n ", sep = "**")
-    response_text <- gsub("\\*\\*([^*]+)\\*\\*", "\n\n**\\1**", response_text)
+    if (input$type == "summary") {
+      response_text <- paste(filteredData()$summary, collapse = " ")
+    } else if (input$type == "flashcard") {
+      response_text <- paste(filteredData()$flashcard, collapse = "\n")
+    } else if (input$type == "multiplechoice") {
+      response_text <- paste(filteredData()$multiplechoice, collapse = "\n")
+    } else {
+      response_text <- "Invalid input type"
+    }
 
+    # response_text <- filteredData()$output
 
-    # Display the generated response
+    # Split the text on asterisks
+    split_text <- strsplit(response_text, "\\*")[[1]]
+
+    # print(split_text)
+
+    # Remove any leading/trailing whitespace from each part and filter out empty strings
+    formatted_text <- trimws(split_text[split_text != ""])
+
+    # Add asterisks and spaces back to each part and join with newlines
+    response_text <- paste0("*", formatted_text, collapse = "\n\n")
+
+    # Display the generated response in the output text box
     output$output_text <- renderText({
       response_text
     })
+
+
   })
 }
 

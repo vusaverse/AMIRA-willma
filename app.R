@@ -73,7 +73,7 @@ generate_request <- function(ppt_content, model, input_type, api_key, willma_bas
 # Define UI
 ui <- fluidPage(
 
-  titlePanel("AMIRA | Canvas automating with AI"),
+  titlePanel("AMIRA | Create content with a click!"),
 
   sidebarLayout(
     sidebarPanel(

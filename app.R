@@ -10,15 +10,17 @@ dfPPT <- readRDS("G:/DSZ/SA2016/Datasets/Output/main/20. Test/WILLMA hackathon/d
 
 data <- dfPPT %>% filter(!is.na(extracted_text))
 
-headers <- add_headers(`X-API-KEY` = api_key, `Content-Type` = "application/json")  # Define R requests headers
-willma_base_url <- "https://willma.soil.surf.nl/"
+if (exists("api_key")) {
+  headers <- add_headers(`X-API-KEY` = api_key, `Content-Type` = "application/json")  # Define R requests headers
+  willma_base_url <- "https://willma.soil.surf.nl/"
 
-response <- GET(paste0(willma_base_url, "api/models"), headers)
-models <- fromJSON(content(response, "text"))
+  response <- GET(paste0(willma_base_url, "api/models"), headers)
+  models <- fromJSON(content(response, "text"))
 
-model <- models %>%
-  filter(id == 82) %>%
-  slice(1)  # Get the first match
+  model <- models %>%
+    filter(id == 82) %>%
+    slice(1)  # Get the first match
+}
 
 # Load the RDS file at the start
 # data <- readRDS("G:/DSZ/SA2016/Datasets/Output/main/20. Test/CAN_Powerpoint_text.rds")
